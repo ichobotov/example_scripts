@@ -5,8 +5,6 @@ import argparse
 import os
 from tqdm import tqdm
 
-record = False
-
 
 def find_string(line, reg_expr):
     if re.search(reg_expr.encode('utf-8'), line):
@@ -47,6 +45,7 @@ start_time = datetime.now()
 
 try:
     if args.time_mode:
+        record = False
         with open(args.input_file, 'rb') as f:
             file_output = os.path.splitext(args.input_file)[0]+'.out'
             with open(file_output, 'wb') as fo:
