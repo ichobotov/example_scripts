@@ -1,0 +1,391 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<title>TTFF Statistics</title>
+</head>
+<style>
+	.upload-section { display: block; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+	.form-group { margin-bottom: 15px; }
+	.form-row { display: flex; gap: 20px; margin-bottom: 15px; }
+	.form-col {width: 50%}
+	label { display: inline-block; margin-bottom: 2px; font-weight: bold; }
+	input[type="text"], input[type="number"], select {
+		width: 100%;
+		padding: 8px;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		box-sizing: border-box;
+	}
+	table { border-collapse: collapse; width: auto; margin-bottom: 20px; }
+	.exceeded { background-color: #ffcccc;}
+	th, td { border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #D9FCA9;}
+	th { background-color: #f2f2f2; }
+	.fail { background-color: #ffdddd; }
+	.success { background-color: #ddffdd; }
+	.status-message { padding:10px; border-radius: 100px;}
+	.success-message { background-color: #d4edda; color: #155724}
+	.error-message { background-color: #f8d7da; color: #721c24; width: 80%}
+	.info-message { background-color: #d1ecf1; color: #0c5460; }
+	button { 
+		background-color: #4CAF50; 
+		color: white; 
+		padding: 10px 15px; 
+		border: none; 
+		border-radius: 4px; 
+		cursor: pointer; 
+		font-size: 16px;
+	}
+	.misc-button {
+		border:2px solid #4CAF50; 
+		background-color:transparent; 
+		color:black;
+		padding: 7px;
+		font-size: 14px;
+	}
+	.misc-button:hover { background-color:#f9f7f6 }
+	button:hover { background-color: #45a049; }
+	select { padding: 8px }
+	.section-title { 
+		margin-top: 0; 
+		margin-bottom: 15px; 
+		padding-bottom: 5px; 
+	}
+	.misc-button:active {
+		background: #ebf8d9;
+	}
+
+</style>
+<body style="width:40%">
+<div class="upload-section">
+<form id="uploadForm">
+<h1>Заполните форму</h1>
+	<div class="form-row">
+	<div class="form-col">
+    <div>
+         <label for="event">Event:</label><br>
+         <input type="text" id="event" name="event" value="EVENT">
+    </div>
+    <div style="margin-top:10px">
+         <label for="flag">Position Flag:</label><br>
+         <input type="number" id="flag" name="flag" value="1">
+    </div>
+    <div style="margin-top:10px">
+         <label for="true_position">True Position:</label><br>
+         <select name="true_position" id="true_pos">
+		    <option type="text" value="55.753152,37.621820" step="0.0000000001">User</option>
+          </select>
+    </div>
+    <div style="margin-top:10px">
+         <p style="font-weight:bold">User True Pos</p>
+         <label for="user_true_lat">Lat, dd.ddddd:</label>
+         <input type="number" id="user_true_lat" name="user_true_lat" step="0.0000000001" value="0">
+         <label for="user_true_lon">Lon, dd.ddddd:</label>
+         <input type="number" id="user_true_lon" name="user_true_lon" step="0.0000000001" value="0">
+    </div>
+	</div>
+	<div class="form-col">
+	<div>
+         <label for="pos_threshold">Accuracy Treshold, meters:</label><br>
+         <input type="number" id="threshold" name="pos_threshold" value="10">
+    </div>
+
+    <div style="margin-top:10px">
+         <label for="duration">Trial Duration, sec:</label><br>
+         <input type="number" id="duration" name="duration" value="300">
+    </div>
+    <div style="margin-top:10px">
+         <label for="good_pos_counter">Good Position Counter:</label><br>
+         <input type="number" id="counter_good_pos" name="good_pos_counter" value="1">
+    </div>
+	</div>
+	</div>
+    <div>
+        <input name="file" id="fileInput" type='file' style="margin-top:10px">
+	</div>
+	<div style="display: flex; justify-content: flex-start; align-items: baseline;">
+    <button type="submit" style="margin-top:20px">Process File</button>
+    <div id="statusMessage" class="status-message" style="display: none; margin-left: 10px; "></div>
+	</div>
+	<p id="errorMessage" style="color: red; font-size: 20px; font-weight: bold"></p>
+</form>
+</div>
+<div style="display: flex; justify-content: flex-start; align-items: baseline; float:right">
+	<div>
+		<a href="/results">
+		<button type="button" class="misc-button">View Result Folder</button>
+		</a>
+	</div>
+	<div style="margin-left:10px">
+		<button type="button" class="misc-button" id="clear_all_results">Clear Result Folder</button>
+	</div>
+</div>
+        <div class="results-section" style="margin-top:10px">
+            <div class="table-container">
+                <h2 class="section-title">Results</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Total trials</th>
+                            <th>Failed trials</th>
+                            <th>Average</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>P50</th>
+                            <th>P90</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataBody">
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <script>
+
+		const API_BASE_URL = 'http://localhost:8001';
+		let StopProcess = '';
+		
+		checkServerAvailability();
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFileUpload();
+        });
+			
+		const clearAllResults = document.getElementById('clear_all_results')
+		clearAllResults.addEventListener('click', () => {
+			fetch(`${API_BASE_URL}/api/clear_all_results`)
+				.then(response => {
+					if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+				})
+				.catch(error => {
+                console.error('Error deleting results:', error);
+				});
+		});
+       
+		async function checkServerAvailability() {
+		  try {
+			const response = await fetch(`${API_BASE_URL}/api/health`);
+			console.log('status', response.status)
+			if (response.status == '200') {
+			  console.log('Сервер доступен');
+			} else {
+				console.log('status', response.status)
+			  console.error('Сервер недоступен', response.status);
+			  displayErrorMessage('Сервер недоступен', response.status);
+			}
+		  } catch (error) {
+			console.error('Сервер недоступен', error);
+			displayErrorMessage('Сервер недоступен', error);
+		  }
+		}
+		
+		
+		function setupFileUpload() {
+			
+            const form = document.getElementById('uploadForm');
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const fileInput = document.getElementById('fileInput');
+                const statusMessage = document.getElementById('statusMessage');
+
+                if (!fileInput.files.length) {
+                    showStatus('Please select a file', 'error', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                // Add processing parameters
+                formData.append('event', document.getElementById('event').value);
+                formData.append('flag', document.getElementById('flag').value);
+                formData.append('true_position', document.getElementById('true_pos').value);
+                formData.append('user_true_lat', document.getElementById('user_true_lat').value);
+                formData.append('user_true_lon', document.getElementById('user_true_lon').value);
+                formData.append('pos_threshold', document.getElementById('threshold').value);
+                formData.append('duration', document.getElementById('duration').value);
+                formData.append('good_pos_counter', document.getElementById('counter_good_pos').value);
+
+                try {
+					displayErrorMessage()
+					updateTable({'clear':'True'}, null)
+                    showStatus('Processing...', 'info');
+
+                    const response = await axios.post(`${API_BASE_URL}/api/process_data/`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    });
+					StopProcess = 'stop';
+					showStatus('Successful!', 'success');
+					const file = formData.get('file')['name']
+                    updateTable(response.data, file);
+                    //populateFileFilter();
+                    //loadData();
+                } catch (error) {
+					StopProcess = 'stop';
+                    showStatus(error.response?.data?.detail || 'Error ', 'error');
+					//displayErrorMessage(error.status);
+                    console.error('Error:', error);
+					displayErrorMessage(error.response.data.error || 'Smt wrong, please check the parameters!')
+                }
+            });
+        }
+		
+		function displayErrorMessage(message) {
+            const errorDisplayElement = document.getElementById("errorMessage");
+            if (errorDisplayElement) {
+                errorDisplayElement.textContent = message;
+                errorDisplayElement.style.color = "red"; // Optional: style the message
+            }
+        }
+		
+		
+        async function showStatus(message, type) {
+				const statusMessage = document.getElementById('statusMessage');
+				statusMessage.textContent = message;
+				statusMessage.style.display = 'block';
+				statusMessage.className = `status-message ${type}-message`;
+			   function sleep(ms) {
+				  return new Promise(resolve => setTimeout(resolve, ms));
+				}
+
+			if (type == 'success' || 'error') {statusMessage.style.width = `80%`}
+			if (type == 'info') {
+				statusMessage.className = `status-message ${type}-message`;
+				mainloop: while (true){
+					for (let i = 10; i <= 80; i+=35) {
+						if (StopProcess == 'stop'){
+							StopProcess = '';
+							break mainloop;
+						}
+						//statusMessage.style.display = 'block';
+						statusMessage.style.width = `${i}%`;
+						//statusMessage.style.paddingRight = `${i}px`;
+						await sleep (200)
+					}
+			}}
+		
+
+            // Hide after 
+//            if (type == 'error') {
+                //setTimeout(() => {
+                //    statusMessage.style.display = 'none';
+                //}, 5000);
+//				setTimeout(function() {
+//					window.location.reload();
+//				}, 3000);
+//            };
+			if (type == 'success') {
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 1500);
+            } 
+        }
+
+
+        function updateTable(data, file) {
+            const tableBody = document.getElementById('dataBody');
+            tableBody.innerHTML = '';
+
+
+            if (data['clear'] == 'True') {
+				if (document.getElementById('legend')) {
+				document.getElementById('legend').remove();
+				}
+				if (document.getElementById('download_section')) {
+				document.getElementById('download_section').remove();
+				}				
+				return
+			}
+			if (data.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="8" style="text-align: center;">No data available</td>';
+				tableBody.innerHTML = '';
+                tableBody.appendChild(tr);
+                return;
+            };
+			const row = document.createElement('tr');
+			const ref_params = {'Failed trials':0, 'Average': 10}
+			const params = ['Total trials', 'Failed trials', 'Average', 'Min', 'Max', 'P50', 'P90']
+			
+			params.forEach( param => {
+				const paramCell = document.createElement('td');
+				paramCell.textContent = data[param];
+				if (param in ref_params) {
+					if (data[param] > ref_params[param]) {
+						paramCell.classList.add('exceeded');
+					}
+				}
+				row.appendChild(paramCell);
+			}
+			)
+			tableBody.appendChild(row);
+			if (document.getElementById('legend')) {
+				document.getElementById('legend').remove();
+			}
+			const legend = document.createElement('div')
+			legend.id = 'legend'
+			legend.style.marginBottom = '20px'
+			legend.innerHTML = `Used Thresholds:<br>
+			Failed trials - ${ref_params['Failed trials']}<br>
+			Average - ${ref_params['Average']} sec`
+			document.body.appendChild(legend)
+			download()
+
+		}
+		function download() {
+			if (document.getElementById('download_section')) {
+				document.getElementById('download_section').remove();
+				}
+			const downloaDiv = document.createElement('div');
+			downloaDiv.id = "download_section"
+			
+			const downloadBtn = document.createElement('button');
+			downloadBtn.textContent = 'Download Results';
+			downloadBtn.id = 'download_results';
+			downloaDiv.appendChild(downloadBtn);
+//			document.body.appendChild(downloadBtn);
+			  
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.id = 'check_deleteAfterDownload';
+			checkbox.checked = true;
+			checkbox.style.marginLeft = '10px'
+			downloaDiv.appendChild(checkbox)
+//			document.body.appendChild(checkbox)
+			  
+			const fileInput = document.getElementById('fileInput')
+			const fileName = fileInput.files[0]
+
+			const label = document.createElement('label');
+			label.htmlFor = 'deleteAfterDownload';
+			label.id = 'Label_deleteAfterDownload'
+			label.textContent = ' Delete files after downloading?';
+			downloaDiv.appendChild(label)
+//			document.body.appendChild(label);
+			document.body.appendChild(downloaDiv)
+	
+			downloadBtn.addEventListener('click', async () => {
+			const params = {
+			file: fileInput.files[0].name,
+			is_checked: checkbox.checked
+			};
+
+			const queryString = Object.keys(params)
+			  .map(key => key + '=' + params[key])
+			  .join('&');
+
+			window.location.href = `${API_BASE_URL}/api/download_results?${queryString}`;
+			});
+
+			}
+    </script>
+
+</body>
