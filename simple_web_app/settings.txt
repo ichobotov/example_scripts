@@ -1,0 +1,10 @@
+[Settings]
+flag = 1
+#True position in dd.ddddd format
+true_lat = 55.753152
+true_lon = 37.621820
+event = EVENT
+pos_threshold = 10
+duration = 300
+good_pos_counter = 1
+file = some_file.log
