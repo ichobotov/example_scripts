@@ -1,16 +1,20 @@
+import argparse
+import configparser
 import ftplib
 import os
 import re
 import datetime
 import sys
-import traceback
+
 from dataclasses import (
     dataclass,
     field,
 )
+from pathlib import Path
+from telebot import TeleBot
 
 # Fill Required Information
-HOSTNAME = "192.168.1.10"
+HOSTNAME = "192.168.1.1"
 USERNAME = "anonymous"
 PASSWORD = ""
 SMB_PORT = "A"  # Port of the mapped disk
@@ -25,6 +29,33 @@ folders = [
     'Folder5',
 ]
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--ignore', nargs='*', default=[])
+args = parser.parse_args()
+
+config = configparser.ConfigParser()
+config.read(Path(__file__).parent.joinpath('telegram_settings.ini'))
+chat_id = config.get('Creds', 'chat_id')
+access_token = config.get('Creds', 'access_token')
+
+
+class TelegramBot:
+    def __init__(self, chat_id, access_token):
+        self._chat_id = int(chat_id)
+        self._telegram_bot = TeleBot(access_token)
+
+    def send_message(
+            self,
+            text: tuple
+            ) -> None:
+        message = ''
+        for i in text:
+            message += i + '\n'
+        self._telegram_bot.send_message(self._chat_id,
+                                        text=message)
+
+
+telebot = TelegramBot(chat_id=chat_id, access_token=access_token)
 
 # Dataclass with results for reporting
 @dataclass
@@ -50,29 +81,27 @@ def files_checker(
     files = []
     if access == 'FTP':
         ftp_server.dir(f'{path}', files.append)
-    if access == 'SMB':
+    if access == 'SMB':  # Some folders are symlinks, access is via SMB
         os.chdir(path)
         files = os.listdir()
 
     for file in files:
         if file.split()[0].startswith('d') or os.path.isdir(file):  # If directory to call the function recursively
             filename = file.split()[-1] if access == 'FTP' else file
-            if filename == 'CONSOLE':  # Skip this folder for analysis
-                continue
             if access == 'FTP':
                 files_checker(ftp_server=ftp, path=f"{path}/{filename}")
             if access == 'SMB':
-                files_checker(path=f'{path}\\{file}', access='SMB')
+                files_checker(path=f'{path}/{file}', access='SMB')
 
         if file.split()[0].startswith('l'):  # If file is symlink go via SMB
-            files_checker(path=f'{SMB_PORT}:\\{path}', access='SMB')
+            files_checker(path=f'{SMB_PORT}:/{path}', access='SMB')
             return None
 
     files = [file for file in files if re.search(r'202\d{5}_', file)]
 
     # Initializing dataclass
     report_data = ReportData(
-        folder=folder
+        folder=path if access == 'FTP' else path.split(':')[1][1:]  # To leave just folders name
     )
 
     if len(files) == 0:
@@ -125,15 +154,20 @@ def files_checker(
                 'size': file_size
             }
         )
+
     if access != 'FTP':
         os.chdir("..")  # Return to parent directory when diving into folders
     report(rd=report_data)
     return
 
-
 def report(
         rd: ReportData
 ) -> None:
+
+    for data in args.ignore:
+        if rd.folder == data:
+            return
+
     if len(rd.files_for_last_date) == 0 and len(rd.files_for_previous_date) == 0:
         print_report((rd.folder, 'There are no files', ''))
         return
@@ -162,17 +196,23 @@ def report(
 def print_report(
         result: tuple,
         print_format: str = '%-30s%-35s%-70s\n',
-) -> None:
+):
+    global problems
+    problems += 1
     f.write(print_format % result)
     print(print_format % result)
+    telebot.send_message(result)
 
 
 if __name__ == '__main__':
+    problems = 0
     with open('check_files.txt', 'w') as f:
         for folder in folders:
             try:
                 files_checker(ftp_server=ftp, path=folder)
             except Exception as e:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
-                print_report(('Exception', f"{e} line {exc_tb.tb_lineno}", f'{folder}'))
+                print_report((f'{folder}', 'Exception', f"{e}"))
                 continue
+        if problems == 0:
+            telebot.send_message(('Today is OK',))
