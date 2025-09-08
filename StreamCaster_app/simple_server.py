@@ -9,14 +9,14 @@ user = sys.argv[2]
 password = sys.argv[3]
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.connect(('10.10.8.49', 2101))
+server_socket.connect(('0.0.0.0', 2101))
 server_socket.sendall(f'SOURCE server_password /{streampoint}'.encode())
 server_socket.recv(1024)
 
 clients = []
 for i in range(1, 6):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('10.10.8.49', 2101))
+    client_socket.connect(('0.0.0.0', 2101))
     clients.append((f"Client_{i}", client_socket))
     auth_data = base64.b64encode(f'{user}:{password}'.encode())
     client_socket.sendall(f'GET /{streampoint} HTTP/1.1\r\nAuthorization: Basic {auth_data.decode()}\r\n'.encode())
