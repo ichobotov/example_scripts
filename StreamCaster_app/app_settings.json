@@ -11,14 +11,14 @@
         },
         "user2": {
             "password": "password2",
-            "allowed_mountpoints": [
+            "allowed_streampoints": [
                 "point1",
                 "point2"
             ]
         },
         "user3": {
             "password": "password3",
-            "allowed_mountpoints": []
+            "allowed_streampoints": []
         }
     }
 }
