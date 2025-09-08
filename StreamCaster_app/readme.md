@@ -27,9 +27,8 @@
 
 4. Backend доступен по ссылке http://localhost:8002/docs (либо вместо localhost использовать 0.0.0.0 или локальный адрес).
    Пароль server_password
-6. Для примера запустить скрипт, имитирующий отправку сообщений сервером и их прием клиентом.
+6. Для примера запустить скрипт, имитирующий отправку сообщений сервером и их прием клиентом с параметрами [streampoint] [user] [password]
 
-   python3 simple_example.py [streampoint] [user] [password]
 ##
     python3 simple_example.py point1 user1 password1
 
