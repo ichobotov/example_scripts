@@ -21,12 +21,13 @@
 2. Перейти в папку с проектом StreamCaster_app
 ##
     cd example_scripts/StreamCaster_app/
-3. Запустить docker-compose (в некоторых случаях через sudo)
+3. Запустить docker-compose
 ##
-    docker-compose up -d --build    
+    sudo docker-compose up -d --build    
 
-4. Backend доступен по ссылке http://localhost:8002/docs (либо вместо localhost использовать 0.0.0.0 либо локальный адрес)
-5. Для примера запустить скрипт, имитирующий отправку сообщений сервером и их прием клиентом.
+4. Backend доступен по ссылке http://localhost:8002/docs (либо вместо localhost использовать 0.0.0.0 либо локальный адрес).
+   При необходимости пароль server_password
+6. Для примера запустить скрипт, имитирующий отправку сообщений сервером и их прием клиентом.
 
    python3 simple_example.py [streampoint] [user] [password]
 ##
