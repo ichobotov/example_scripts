@@ -32,7 +32,8 @@
 
 ##
     python3 simple_example.py point1 user1 password1
-
-    <img width="387" height="281" alt="image" src="https://github.com/user-attachments/assets/3a46a019-873d-4f89-9ca7-1fd21a8acd18" />
+7. GET запрос отобразит текущий статус данной точки подключения 
+##
+    curl -X 'GET' 'http://0.0.0.0:8002/streampoints/'
 
 
