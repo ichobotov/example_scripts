@@ -32,7 +32,7 @@
 
 ##
     python3 simple_example.py point1 user1 password1
-7. GET запрос отобразит текущий статус данной точки подключения 
+7. Текущий статус точек подключения можно посмотреть через GET запрос
 ##
     curl -X 'GET' 'http://0.0.0.0:8002/streampoints/'
 
