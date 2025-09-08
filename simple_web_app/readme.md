@@ -8,8 +8,13 @@
 
 ## Установка
 Для примера работы приложения логика обработки данных и тестовый файл упрощены.
-1. Скачать всю структуру проекта 
-2. Находясь в корне запустить команду 
+1. Сохранить проект
+##
+        git clone https://github.com/ichobotov/example_scripts.git
+2. Перейти в папку с проектом simple_web_app
+##
+        cd example_scripts/simple_web_app/
+3. Запустить docker-compose (при необходимости через sudo)
 ##
     docker-compose up -d --build    
 
