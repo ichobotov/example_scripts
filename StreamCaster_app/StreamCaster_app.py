@@ -262,6 +262,9 @@ class StreamCaster:
                         )
                         if server_activity_sec > RECONNECT_DELAY:
                             raise TimeoutError
+                    writer.write(b' ')
+                    await writer.drain()
+                    
                     data = await asyncio.wait_for(reader.read(4096), timeout=1)
                     if data:
                         self.server_connections[streampoint]['last_activity'] = time.time()
