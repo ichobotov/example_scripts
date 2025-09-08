@@ -26,7 +26,7 @@
     docker-compose up -d --build    
 
 4. Backend доступен по ссылке http://localhost:8002/docs (либо вместо localhost использовать 0.0.0.0 или локальный адрес).
-   При необходимости пароль server_password
+   Пароль server_password
 6. Для примера запустить скрипт, имитирующий отправку сообщений сервером и их прием клиентом.
 
    python3 simple_example.py [streampoint] [user] [password]
