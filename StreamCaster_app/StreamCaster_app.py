@@ -510,7 +510,7 @@ async def list_stream_points() -> list:
         if sp in proxy.client_queues:
             client_count = len(proxy.client_queues[sp])
         server_connected = False
-        if sp in proxy.server_connections:
+        if sp in proxy.server_connections and proxy.server_connections[sp] != {}:
             server_connected = True
         mp_list.append(
             StreamPointInfo(
