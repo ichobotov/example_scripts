@@ -32,8 +32,8 @@
 
 ##
     python3 simple_example.py point1 user1 password1
-7. Текущий статус точек подключения можно посмотреть через GET запрос
+7. Текущий статус точек подключения можно посмотреть на http://localhost:8002/docs или через GET запрос
 ##
-    curl -X 'GET' 'http://0.0.0.0:8002/streampoints/'
+     curl -X 'GET' 'http://0.0.0.0:8002/streampoints/' | python3 -m json.tool
 
 
